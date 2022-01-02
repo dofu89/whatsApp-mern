@@ -1,58 +1,45 @@
-import React from 'react';
-import logo from './logo.svg';
-import { Counter } from './features/counter/Counter';
-import './App.css';
+import React, { useEffect, useState } from 'react'
+import './App.scss'
+import Sidebar from './components/Sidebar'
+import Chat from './components/Chat'
+import Pusher from 'pusher-js'
+import axios from './axios'
 
-function App() {
+const App = () => {
+  const [messages, setMessages] = useState([])
+
+  useEffect(() => {
+    const fetchMesages = async () => {
+      let msgs = await axios.get('/api/v1/messages/sync')
+      msgs = await msgs.data
+      await setMessages(msgs)
+    }
+    fetchMesages()
+  }, [])
+
+  useEffect(() => {
+    const pusher = new Pusher('114333fe3013bf243125', {
+      cluster: 'eu',
+    })
+
+    const channel = pusher.subscribe('messages')
+    channel.bind('inserted', (data) => {
+      setMessages([...messages, data])
+    })
+    return () => {
+      channel.unbind_all()
+      channel.unsubscribe()
+    }
+  }, [messages])
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <Counter />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <span>
-          <span>Learn </span>
-          <a
-            className="App-link"
-            href="https://reactjs.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            React
-          </a>
-          <span>, </span>
-          <a
-            className="App-link"
-            href="https://redux.js.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Redux
-          </a>
-          <span>, </span>
-          <a
-            className="App-link"
-            href="https://redux-toolkit.js.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Redux Toolkit
-          </a>
-          ,<span> and </span>
-          <a
-            className="App-link"
-            href="https://react-redux.js.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            React Redux
-          </a>
-        </span>
-      </header>
+    <div className='app'>
+      <div className='app-container'>
+        <Sidebar />
+        <Chat messages={messages} />
+      </div>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
